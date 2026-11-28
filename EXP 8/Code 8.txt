@@ -1,0 +1,37 @@
+#include <systemc.h>
+
+SC_MODULE(Process)
+{
+    void process1()
+    {
+        while (true)
+        {
+            cout << "Process 1 at time: "
+                 << sc_time_stamp() << endl;
+            wait(10, SC_NS);
+        }
+    }
+
+    void process2()
+    {
+        while (true)
+        {
+            cout << "Process 2 at time: "
+                 << sc_time_stamp() << endl;
+            wait(20, SC_NS);
+        }
+    }
+
+    SC_CTOR(Process)
+    {
+        SC_THREAD(process1);
+        SC_THREAD(process2);
+    }
+};
+
+int sc_main(int argc, char* argv[])
+{
+    Process p("Process");
+    sc_start(100, SC_NS);
+    return 0;
+}
