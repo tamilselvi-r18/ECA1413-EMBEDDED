@@ -1,0 +1,36 @@
+#include <LPC214x.h>
+
+void UART0_Init(void)
+{
+    PINSEL0 = 0x00000005;  // UART0 TXD and RXD
+    U0LCR = 0x83;          // 8-bit, 1 stop bit, enable DLAB
+    U0DLL = 97;            // 9600 baud rate
+    U0DLM = 0;
+    U0LCR = 0x03;          // Disable DLAB
+    U0IER = 0x01;          // Enable receive interrupt
+    VICIntEnable = 0x00000040;
+    VICVectCntl0 = 0x20 | 6;
+    VICVectAddr0 = (unsigned long)UART0_ISR;
+}
+
+void UART0_ISR(void) __irq
+{
+    unsigned char data;
+
+    if (U0IIR & 0x04)
+    {
+        data = U0RBR;
+        U0THR = data;
+    }
+
+    VICVectAddr = 0;
+}
+
+int main(void)
+{
+    UART0_Init();
+
+    while(1)
+    {
+    }
+}
