@@ -1,0 +1,74 @@
+
+#include <Arduino.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+#define BUTTON_PIN 0
+
+TaskHandle_t interruptTaskHandle;
+volatile int interruptCount = 0;
+
+void IRAM_ATTR ButtonISR()
+{
+  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+  interruptCount++;
+
+  vTaskNotifyGiveFromISR(
+    interruptTaskHandle,
+    &xHigherPriorityTaskWoken
+  );
+
+  portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+void InterruptTask(void *pvParameters)
+{
+  while (1)
+  {
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+    Serial.print("INTERRUPT TASK > Button Pressed: ");
+    Serial.println(interruptCount);
+  }
+}
+
+void BackgroundTask(void *pvParameters)
+{
+  while (1)
+  {
+    Serial.println("LOW PRIORITY TASK > Background processing");
+    vTaskDelay(pdMS_TO_TICKS(1000));
+  }
+}
+
+void setup()
+{
+  Serial.begin(115200);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+
+  xTaskCreate(
+    InterruptTask, "InterruptTask",
+    2048, NULL, 3, &interruptTaskHandle
+  );
+
+  xTaskCreate(
+    BackgroundTask, "BackgroundTask",
+    2048, NULL, 1, NULL
+  );
+
+  attachInterrupt(
+    digitalPinToInterrupt(BUTTON_PIN),
+    ButtonISR, FALLING
+  );
+
+  Serial.println("Interrupt configured on GPIO 0.");
+  Serial.println("Interrupt Task Priority = 3");
+  Serial.println("Background Task Priority = 1");
+  Serial.println("Press the BOOT button.");
+}
+
+void loop()
+{
+  vTaskDelay(pdMS_TO_TICKS(1000));
+}
