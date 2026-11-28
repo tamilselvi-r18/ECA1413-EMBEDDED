@@ -1,0 +1,126 @@
+
+#include <Arduino.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+#define BLOCKS 4
+#define BLOCK_SIZE 32
+
+uint32_t memoryPool[BLOCKS][BLOCK_SIZE / 4];
+bool used[BLOCKS] = {false, false, false, false};
+
+void* allocateBlock()
+{
+  for (int i = 0; i < BLOCKS; i++)
+  {
+    if (!used[i])
+    {
+      used[i] = true;
+      return memoryPool[i];
+    }
+  }
+  return NULL;
+}
+
+void releaseBlock(void *ptr)
+{
+  for (int i = 0; i < BLOCKS; i++)
+  {
+    if (ptr == memoryPool[i])
+      used[i] = false;
+  }
+}
+
+void MemoryTask(void *parameter)
+{
+  Serial.println("\n--- HEAP MEMORY ---");
+
+  size_t before = ESP.getFreeHeap();
+  int *data = (int *)pvPortMalloc(10 * sizeof(int));
+
+  if (data != NULL)
+  {
+    size_t after = ESP.getFreeHeap();
+
+    Serial.print("Heap before : ");
+    Serial.println(before);
+
+    Serial.print("Heap after  : ");
+    Serial.println(after);
+
+    Serial.print("Heap reduction : ");
+    Serial.println(before - after);
+
+    vPortFree(data);
+
+    Serial.print("Heap after release : ");
+    Serial.println(ESP.getFreeHeap());
+  }
+
+  Serial.println("\n--- STACK HIGH-WATER MARK ---");
+
+  UBaseType_t stack = uxTaskGetStackHighWaterMark(NULL);
+
+  Serial.print("Minimum remaining stack : ");
+  Serial.println(stack);
+
+  Serial.println("\n--- MEMORY POOL ---");
+  Serial.println("Pool size : 128 bytes");
+
+  void *blocks[5];
+
+  for (int i = 0; i < 5; i++)
+  {
+    blocks[i] = allocateBlock();
+
+    if (blocks[i] != NULL)
+    {
+      Serial.printf("Block %d allocated\n", i + 1);
+    }
+    else
+    {
+      Serial.printf("Block %d: FAILED - Pool FULL\n", i + 1);
+    }
+  }
+
+  for (int i = 0; i < 5; i++)
+  {
+    if (blocks[i] != NULL)
+      releaseBlock(blocks[i]);
+  }
+
+  Serial.println("All blocks released");
+
+  void *newBlock = allocateBlock();
+
+  if (newBlock != NULL)
+    Serial.println("Block successfully reallocated");
+
+  Serial.println("\n--- MEMORY TEST COMPLETE ---");
+
+  vTaskDelete(NULL);
+}
+
+void setup()
+{
+  Serial.begin(115200);
+  delay(1000);
+
+  Serial.println("================================");
+  Serial.println("RTOS MEMORY MANAGEMENT TEST");
+  Serial.println("================================");
+
+  xTaskCreate(
+    MemoryTask,
+    "MemoryTask",
+    4096,
+    NULL,
+    2,
+    NULL
+  );
+}
+
+void loop()
+{
+  delay(1000);
+}
