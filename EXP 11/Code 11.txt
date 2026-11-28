@@ -1,0 +1,52 @@
+
+#include <Arduino.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+int highCount = 0;
+int mediumCount = 0;
+int lowCount = 0;
+
+void Task1(void *pvParameters)
+{
+  while (1)
+  {
+    highCount++;
+    Serial.printf("HIGH   | Priority: 3 | Count: %d | RUNNING -> BLOCKED (500 ms)\n", highCount);
+    vTaskDelay(pdMS_TO_TICKS(500));
+  }
+}
+
+void Task2(void *pvParameters)
+{
+  while (1)
+  {
+    mediumCount++;
+    Serial.printf("MEDIUM | Priority: 2 | Count: %d | RUNNING -> BLOCKED (1000 ms)\n", mediumCount);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+  }
+}
+
+void Task3(void *pvParameters)
+{
+  while (1)
+  {
+    lowCount++;
+    Serial.printf("LOW    | Priority: 1 | Count: %d | RUNNING -> BLOCKED (1500 ms)\n", lowCount);
+    vTaskDelay(pdMS_TO_TICKS(1500));
+  }
+}
+
+void setup()
+{
+  Serial.begin(115200);
+
+  xTaskCreatePinnedToCore(Task1, "HIGH", 2048, NULL, 3, NULL, 1);
+  xTaskCreatePinnedToCore(Task2, "MEDIUM", 2048, NULL, 2, NULL, 1);
+  xTaskCreatePinnedToCore(Task3, "LOW", 2048, NULL, 1, NULL, 1);
+}
+
+void loop()
+{
+  delay(1000);
+}
