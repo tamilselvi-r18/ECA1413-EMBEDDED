@@ -1,0 +1,65 @@
+
+#include <Arduino.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
+
+QueueHandle_t dataQueue;
+
+void Producer(void *pvParameters)
+{
+  uint32_t data = 100;
+
+  while (1)
+  {
+    if (xQueueSend(dataQueue, &data, 0) == pdPASS)
+    {
+      Serial.printf("[PRODUCER] Data sent: %lu\n",
+                    (unsigned long)data);
+    }
+    else
+    {
+      Serial.println("[PRODUCER] Queue full! data not sent");
+    }
+
+    data += 10;
+    vTaskDelay(pdMS_TO_TICKS(500));
+  }
+}
+
+void Consumer(void *pvParameters)
+{
+  uint32_t receivedData;
+
+  while (1)
+  {
+    if (xQueueReceive(dataQueue, &receivedData,
+                      portMAX_DELAY) == pdPASS)
+    {
+      Serial.printf("[CONSUMER] Data received: %lu\n",
+                    (unsigned long)receivedData);
+
+      Serial.println("----------------------------");
+
+      vTaskDelay(pdMS_TO_TICKS(1500));
+    }
+  }
+}
+
+void setup()
+{
+  Serial.begin(115200);
+
+  dataQueue = xQueueCreate(3, sizeof(uint32_t));
+
+  if (dataQueue != NULL)
+  {
+    xTaskCreate(Producer, "Producer", 2048, NULL, 2, NULL);
+    xTaskCreate(Consumer, "Consumer", 2048, NULL, 1, NULL);
+  }
+}
+
+void loop()
+{
+  delay(1000);
+}
