@@ -1,0 +1,40 @@
+#include <systemc.h>
+
+SC_MODULE(ProductionLine)
+{
+    int product_count;
+
+    void production()
+    {
+        product_count = 0;
+
+        while (true)
+        {
+            wait(10, SC_NS);
+            product_count++;
+
+            cout << "Product " << product_count
+                 << " produced at "
+                 << sc_time_stamp() << endl;
+
+            cout << "Status: Processing Completed" << endl;
+        }
+    }
+
+    SC_CTOR(ProductionLine)
+    {
+        SC_THREAD(production);
+    }
+};
+
+int sc_main(int argc, char* argv[])
+{
+    ProductionLine line("ProductionLine");
+
+    sc_start(50, SC_NS);
+
+    cout << "Total Products: "
+         << line.product_count << endl;
+
+    return 0;
+}
