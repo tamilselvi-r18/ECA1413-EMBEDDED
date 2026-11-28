@@ -1,0 +1,34 @@
+import serial
+import time
+
+# Serial Port Configuration
+ser = serial.Serial('COM3', 9600, timeout=2)
+
+print("Embedded Test Automation Started")
+
+# Send test command
+ser.write(b'TEST\n')
+time.sleep(1)
+
+# Read response
+response = ser.readline().decode().strip()
+print("Device Response:", response)
+
+if response == "OK":
+    print("Test Status: PASS")
+else:
+    print("Test Status: FAIL")
+
+# Firmware flashing command
+print("Firmware Flashing Started")
+
+with open("firmware.hex", "rb") as file:
+    firmware = file.read()
+
+ser.write(firmware)
+ser.flush()
+
+print("Firmware Flashing Completed")
+
+ser.close()
+print("Serial Port Closed")
