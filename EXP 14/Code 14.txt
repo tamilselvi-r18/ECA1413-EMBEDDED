@@ -1,0 +1,85 @@
+
+#include <Arduino.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/timers.h"
+#include "freertos/event_groups.h"
+
+#define BIT_0 (1 << 0)
+#define BIT_1 (1 << 1)
+
+EventGroupHandle_t eventGroup;
+TimerHandle_t timer1, timer2;
+
+void Timer1Callback(TimerHandle_t xTimer)
+{
+  xEventGroupSetBits(eventGroup, BIT_0);
+}
+
+void Timer2Callback(TimerHandle_t xTimer)
+{
+  xEventGroupSetBits(eventGroup, BIT_1);
+}
+
+void SyncTask(void *pvParameters)
+{
+  while (1)
+  {
+    Serial.println("Waiting for BIT 0 and BIT 1...");
+
+    xEventGroupWaitBits(
+      eventGroup,
+      BIT_0 | BIT_1,
+      pdTRUE,
+      pdTRUE,
+      portMAX_DELAY
+    );
+
+    Serial.println("Both Timer Events detected!");
+    Serial.println("Timer 1 Event -> BIT 0");
+    Serial.println("Timer 2 Event -> BIT 1");
+    Serial.println("Synchronization complete.");
+    Serial.println("----------------------------");
+  }
+}
+
+void setup()
+{
+  Serial.begin(115200);
+
+  eventGroup = xEventGroupCreate();
+
+  timer1 = xTimerCreate(
+    "Timer1",
+    pdMS_TO_TICKS(1000),
+    pdTRUE,
+    NULL,
+    Timer1Callback
+  );
+
+  timer2 = xTimerCreate(
+    "Timer2",
+    pdMS_TO_TICKS(2000),
+    pdTRUE,
+    NULL,
+    Timer2Callback
+  );
+
+  xTaskCreate(
+    SyncTask, "SyncTask",
+    2048, NULL, 2, NULL
+  );
+
+  xTimerStart(timer1, 0);
+  xTimerStart(timer2, 0);
+
+  Serial.println("Timer 1 = 1000 ms -> BIT 0");
+  Serial.println("Timer 2 = 2000 ms -> BIT 1");
+  Serial.println("Both events required for synchronization.");
+  Serial.println("============================");
+}
+
+void loop()
+{
+  vTaskDelay(pdMS_TO_TICKS(1000));
+}
